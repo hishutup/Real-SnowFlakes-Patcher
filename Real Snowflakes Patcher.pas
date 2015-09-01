@@ -14,23 +14,22 @@ unit userscript;
 uses 'Check For Errors';
 
 const
-	cVer='1.6';//This is the version of the script, not the main mod
-	cDashes = '-----------------------------------------------------------------------------------';
+  cVer='1.6';//This is the version of the script, not the main mod
+  cDashes = '-----------------------------------------------------------------------------------';
 	
-	//Debugging Options
-	doDebugINI=false;//Displays the info that is read from the ini
+  //Debugging Options
+  doDebugINI=false;//Displays the info that is read from the ini
   doDebugEffects=false;//Displays the info being loading into the effects list
-	doDebugProcess=false;//Display info for the record handling process
+  doDebugProcess=false;//Display info for the record handling process
   doDebugFormIDLIsts=false;//Displays the FormID Lists
 	
-	//Please do not use this unless requested by either Mangaclub or Hishy
-	doScan=false; //Scan for weathers with the snow flags
+  //Please do not use this unless requested by either Mangaclub or Hishy
+  doScan=false; //Scan for weathers with the snow flags
 	
-	cINIFile='Real Snowflakes Patcher.ini';//Ini File Name
-	cPatchFile='Vivid Snow.esp';//Patch File to use.
+  cINIFile='Real Snowflakes Patcher.ini';//Ini File Name
+  cPatchFile='Vivid Snow.esp';//Patch File to use.
  
 var
-  
   sScriptFailedReason: String;//Script failed toggle
   slEffect, slWeather, slFormList, slAppliedWeathers: TStringList;//Global StringLists
   iPatchFile: IInterface;//Stores the Patch File
@@ -333,7 +332,6 @@ var
 begin
   DebugEffectsMessage('Finding Effects FormIDs');
   g := GroupBySignature(iPatchFile, 'RFCT');
-  
   for i := 0 to Pred(ElementCount(g)) do begin
     e := ElementByIndex(g, i);
     sEDID := EditorID(e);
@@ -342,13 +340,11 @@ begin
       AddMessage('    Couldn''t Find the Index of: '+sEDID);
       continue;
     end;
-    
     sFormID := HexFormID(e);
     if sFormID = '00000000' then begin
       AddMessage('    Something went wrong with sFormID for: '+sEDID);
       continue;
     end;
-    
     DebugEffectsMessage('  Adding '+sFormID+' to '+slEffect.Names[iIndex]);
     slEffect.ValueFromIndex[iIndex] := sFormID;
   end;
@@ -398,7 +394,6 @@ begin
   try
     sEDID := EditorID(e);
     DebugProcessMessage('      Found valid weather: '+sEDID);
-    
     //First Add All Masters to List
     for i := 0 to Pred(MasterCount(f)) do begin
       AddMastersToList(MasterByIndex(f, i), slMasters);
@@ -406,7 +401,6 @@ begin
     AddMastersToList(f, slMasters); //Dont forget the mainfile
     AddMastersToFile(iPatchFile,slMasters,true); //Add Masters to File
     rec := wbCopyElementToFile(e, iPatchFile, False, True); //Copy Element
-    
     //Change records
     sEffect := slWeather.Values[sEDID];//Effect that needs to be applied
     sFormID := slEffect.Values[sEffect];//Get the Effect's FormID
@@ -416,13 +410,13 @@ begin
     if (slAppliedWeathers.IndexOfName(sEDID) = -1) AND IsMaster(e) then
       slAppliedWeathers.Add(geev(e, 'Record Header\FormID')+'='+sEffect);//Add Effect to list
   except 
-		on x: exception do begin
-			sScriptFailedReason := 'Something went wrong, I dont really know what... but take this:';
-			AddMessage(x.Message);
+    on x: exception do begin
+      sScriptFailedReason := 'Something went wrong, I dont really know what... but take this:';
+      AddMessage(x.Message);
       AddMessage(cDashes);
       CheckForErrors(0,e);
-		end;
-	end
+    end;
+  end
 end;
 
 procedure ProcessWeathers;
@@ -479,7 +473,6 @@ begin
     slev(e, 'FormIDs', sl);
     sl.Free;
   end;
-  
 end;
 
 //
@@ -488,10 +481,8 @@ end;
 function Initialize: integer;
 begin
   CreateStringLists;//Create StringLists
-  
   InitialSetup; //Handles Intro and file checks
   if sScriptFailedReason <> '' then exit;
-  
   {Do Work}
   LoadINI; //Ini Handling
   LoadEffects; //Loads the FormID in the slEffect list
