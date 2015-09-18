@@ -7,29 +7,32 @@ Created by Hishutup with the guidance of Mator.
 Thanks to Mator for some of his functions.
 
 
-ChangeLog(1.55->1.6)
-*Added FormID Lists - not 100% happy with the implementation but it works for now
+ChangeLog(1.5->1.65)
+*Added xEdit version check
 }
 unit userscript;
 uses 'Check For Errors';
 
 const
-  cVer='1.6';//This is the version of the script, not the main mod
-  cDashes = '-----------------------------------------------------------------------------------';
+  cRequired_xEdit_Ver='03010200'//xEdit Version
+  
+	cVer='1.65';//This is the version of the script, not the main mod
+	cDashes = '-----------------------------------------------------------------------------------';
 	
-  //Debugging Options
-  doDebugINI=false;//Displays the info that is read from the ini
+	//Debugging Options
+	doDebugINI=false;//Displays the info that is read from the ini
   doDebugEffects=false;//Displays the info being loading into the effects list
-  doDebugProcess=false;//Display info for the record handling process
+	doDebugProcess=false;//Display info for the record handling process
   doDebugFormIDLIsts=false;//Displays the FormID Lists
 	
-  //Please do not use this unless requested by either Mangaclub or Hishy
-  doScan=false; //Scan for weathers with the snow flags
+	//Please do not use this unless requested by either Mangaclub or Hishy
+	doScan=false; //Scan for weathers with the snow flags
 	
-  cINIFile='Real Snowflakes Patcher.ini';//Ini File Name
-  cPatchFile='Vivid Snow.esp';//Patch File to use.
+	cINIFile='Real Snowflakes Patcher.ini';//Ini File Name
+	cPatchFile='Vivid Snow.esp';//Patch File to use.
  
 var
+  
   sScriptFailedReason: String;//Script failed toggle
   slEffect, slWeather, slFormList, slAppliedWeathers: TStringList;//Global StringLists
   iPatchFile: IInterface;//Stores the Patch File
@@ -214,26 +217,37 @@ begin
   AddMessage('The current Script Version is: '+cVer);//Print the Script version
   AddMessage(cDashes);//Dashes
   
-  if wbAppName <> 'TES5' then begin //Check for Skyrim
+  if StrToInt('$'+cRequired_xEdit_Ver) < StrToInt(wbVersionNumber) then 
+  begin //Check xEdit version
+    sScriptFailedReason := 'Your xEdit application is out-of-date. Please update, terminating script now.';
+    exit;
+  end;
+  
+  if wbAppName <> 'TES5' then 
+  begin //Check for Skyrim
     sScriptFailedReason := 'This is a Skyrim only script, terminating script now.';
     exit;
   end;
   
-  if GetFileName(iPatchFile) = '' then begin //Check for Patch File
+  if GetFileName(iPatchFile) = '' then 
+  begin //Check for Patch File
     sScriptFailedReason := 'You are missing '+cPatchFile+'. Please reinstal Vivid Snow, terminating script now.';
     exit;
   end;
   
-  if HasGroup(iPatchFile, 'WTHR') then begin //Check for Weather Group in Patch File
+  if HasGroup(iPatchFile, 'WTHR') then 
+  begin //Check for Weather Group in Patch File
     sScriptFailedReason := 'Found previously patched weathers. Please reinstal Vivid Snow, terminating script now.';
     exit;
   end;
   
-  if HasGroup(iPatchFile, 'FLST') then begin//Checks for FormID Lists
+  if HasGroup(iPatchFile, 'FLST') then 
+  begin//Checks for FormID Lists
     sScriptFailedReason := 'Found previously patched weathers. Please reinstal Vivid Snow, terminating script now.';
   end;
   
-  if not CheckINI then begin //Check for INI File
+  if not CheckINI then 
+  begin //Check for INI File
     sScriptFailedReason := 'You are missing '+cINIFile+'. Please reinstal the "Edit Scripts" folder from the mod archive, terminating script now.';
     exit;
   end;
@@ -244,22 +258,26 @@ end;
 //============================================================================================================= 
 procedure DebugINIMessage(s: string);
 begin
-  if doDebugINI then AddMessage(s);
+  if doDebugINI then 
+    AddMessage(s);
 end;
 
 procedure DebugEffectsMessage(s: string);
 begin
-  if doDebugEffects then AddMessage(s);
+  if doDebugEffects then 
+    AddMessage(s);
 end;
 
 procedure DebugProcessMessage(s: string);
 begin
-  if doDebugProcess then AddMessage(s);
+  if doDebugProcess then 
+    AddMessage(s);
 end;
 
 procedure DebugFormListMessage(s: string);
 begin
-  if doDebugFormIDLIsts then AddMessage(s);
+  if doDebugFormIDLIsts then 
+    AddMessage(s);
 end;
 
 //
@@ -287,12 +305,14 @@ begin
   DebugINIMessage('Reading INI Now...');
   DebugINIMessage('  The current INI version is: '+ini.ReadString('General', 'Ver', 'Invaild!')); //ReadINI Version
   ini.ReadSection('Effects', slCat);//Load Value Names
-  for iCat := 0 to Pred(slCat.Count) do begin
+  for iCat := 0 to Pred(slCat.Count) do 
+  begin
     sCategory := slCat[iCat];
     DebugINIMessage('  Currently Reading the Category: '+sCategory);
     slEffect.Add(sCategory+'='+''); //'' is going to be the Visual Effect's FormID
     slValues.CommaText := ini.ReadString('Effects',sCategory,'');
-    for iVal := 0 to Pred(slValues.Count) do begin
+    for iVal := 0 to Pred(slValues.Count) do 
+    begin
       sValue := slValues[iVal];
       DebugINIMessage('    Loading: '+sValue);
       slWeather.Add(sValue+'='+sCategory);
@@ -332,19 +352,25 @@ var
 begin
   DebugEffectsMessage('Finding Effects FormIDs');
   g := GroupBySignature(iPatchFile, 'RFCT');
-  for i := 0 to Pred(ElementCount(g)) do begin
+  
+  for i := 0 to Pred(ElementCount(g)) do 
+  begin
     e := ElementByIndex(g, i);
     sEDID := EditorID(e);
     iIndex := slEffect.IndexOfName(sEDID);
-    if iIndex = -1 then begin 
+    if iIndex = -1 then 
+    begin 
       AddMessage('    Couldn''t Find the Index of: '+sEDID);
       continue;
     end;
+    
     sFormID := HexFormID(e);
-    if sFormID = '00000000' then begin
+    if sFormID = '00000000' then 
+    begin
       AddMessage('    Something went wrong with sFormID for: '+sEDID);
       continue;
     end;
+    
     DebugEffectsMessage('  Adding '+sFormID+' to '+slEffect.Names[iIndex]);
     slEffect.ValueFromIndex[iIndex] := sFormID;
   end;
@@ -360,15 +386,19 @@ var
   g, rec: IInterface;
 begin
   DebugFormListMessage('Starting to create FormID Lists.');
-  if not HasGroup(iPatchFile, 'FLST') then begin
+  if not HasGroup(iPatchFile, 'FLST') then 
+  begin
     Add(iPatchFile,'FLST', True);
     DebugFormListMessage('  Creating FormID List Group');
   end;
-  for i := 0 to Pred(slWeather.Count) do begin
-    if slFormList.IndexOfName(slWeather.ValueFromIndex[i]+'_List') = -1 then slFormList.Add(slWeather.ValueFromIndex[i]+'_List'+'='+'');
+  for i := 0 to Pred(slWeather.Count) do 
+  begin
+    if slFormList.IndexOfName(slWeather.ValueFromIndex[i]+'_List') = -1 then 
+      slFormList.Add(slWeather.ValueFromIndex[i]+'_List'+'='+'');
   end;
   g := GroupBySignature(iPatchFile, 'FLST');
-  for i := 0 to Pred(slFormList.Count) do begin
+  for i := 0 to Pred(slFormList.Count) do 
+  begin
     sEffect := slFormList.Names[i];
     rec := Add(g, 'FLST', True);
     Add(rec, 'FormIDs', True);
@@ -381,7 +411,8 @@ end;
 
 procedure ScanForSnow(e: IInterface; sl: TStringList);
 begin
-  if (genv(e, 'DATA\Flags') AND 8) = 8 then sl.Add(EditorID(e)+' has "Weather - Snowly" flag but isn''t included.');
+  if (genv(e, 'DATA\Flags') AND 8) = 8 then 
+    sl.Add(EditorID(e)+' has "Weather - Snowly" flag but isn''t included.');
 end;
 
 procedure ApplyEffect(f, e: IInterface; slMasters: TStringList);
@@ -394,13 +425,16 @@ begin
   try
     sEDID := EditorID(e);
     DebugProcessMessage('      Found valid weather: '+sEDID);
+    
     //First Add All Masters to List
-    for i := 0 to Pred(MasterCount(f)) do begin
+    for i := 0 to Pred(MasterCount(f)) do 
+    begin
       AddMastersToList(MasterByIndex(f, i), slMasters);
     end;
     AddMastersToList(f, slMasters); //Dont forget the mainfile
     AddMastersToFile(iPatchFile,slMasters,true); //Add Masters to File
     rec := wbCopyElementToFile(e, iPatchFile, False, True); //Copy Element
+    
     //Change records
     sEffect := slWeather.Values[sEDID];//Effect that needs to be applied
     sFormID := slEffect.Values[sEffect];//Get the Effect's FormID
@@ -410,13 +444,14 @@ begin
     if (slAppliedWeathers.IndexOfName(sEDID) = -1) AND IsMaster(e) then
       slAppliedWeathers.Add(geev(e, 'Record Header\FormID')+'='+sEffect);//Add Effect to list
   except 
-    on x: exception do begin
-      sScriptFailedReason := 'Something went wrong, I dont really know what... but take this:';
-      AddMessage(x.Message);
+		on x: exception do 
+    begin
+			sScriptFailedReason := 'Something went wrong, I dont really know what... but take this:';
+			AddMessage(x.Message);
       AddMessage(cDashes);
       CheckForErrors(0,e);
-    end;
-  end
+		end;
+	end
 end;
 
 procedure ProcessWeathers;
@@ -429,19 +464,24 @@ begin
   DebugProcessMessage('Starting to process weathers');
   slMasters := TStringList.Create;
   slNewWeather := TStringList.Create;
-  for iFileIdx := GetLoadOrder(iPatchFile) downto 0 do begin
+  for iFileIdx := GetLoadOrder(iPatchFile) downto 0 do 
+  begin
     f := FileByIndex(iFileIdx);
     DebugProcessMessage('  Currently working on: '+GetFileName(f));
     g := GroupBySignature(f, 'WTHR');
-    for iElementIdx := 0 to Pred(ElementCount(g)) do begin
+    for iElementIdx := 0 to Pred(ElementCount(g)) do 
+    begin
       e := ElementByIndex(g,iElementIdx);
       sEDID := EditorID(e);
       DebugProcessMessage('    Looking at: '+sEDID);
-      if slWeather.IndexOfName(sEDID) <> -1 then ApplyEffect(f, e, slMasters)
-      else if doScan then ScanForSnow(e,slNewWeather);
+      if slWeather.IndexOfName(sEDID) <> -1 then 
+        ApplyEffect(f, e, slMasters)
+      else if doScan then 
+        ScanForSnow(e,slNewWeather);
     end;
   end;
-  if doScan then AddMessage(slNewWeather.Text);//Print weathers that are not yet included.
+  if doScan then 
+    AddMessage(slNewWeather.Text);//Print weathers that are not yet included.
   slMasters.Free;
   slNewWeather.Free;
 end;
@@ -454,17 +494,21 @@ var
   e: IInterface;
 begin
   DebugFormListMessage('Filling FormID Lists');
-  for i := 0 to Pred(slEffect.Count) do begin
+  for i := 0 to Pred(slEffect.Count) do 
+  begin
     sEffect := slEffect.Names[i];
     iFormIdx := slFormList.IndexOfName(sEffect+'_List');
-    if iFormIdx = -1 then begin 
+    if iFormIdx = -1 then 
+    begin 
       sScriptFailedReason := 'Something went wrong with adding finding the idex of a FormID List';
       exit;
     end;
     DebugFormListMessage('  Reading Lists for '+ sEffect);
     sl := TStringList.Create;
-    for j := 0 to Pred(slAppliedWeathers.Count) do begin
-      if slAppliedWeathers.ValueFromIndex[j] = sEffect then begin
+    for j := 0 to Pred(slAppliedWeathers.Count) do 
+    begin
+      if slAppliedWeathers.ValueFromIndex[j] = sEffect then 
+      begin
         sl.Add(slAppliedWeathers.Names[j]);
         DebugFormListMessage('    '+slAppliedWeathers.Names[j]);
       end;
@@ -473,6 +517,7 @@ begin
     slev(e, 'FormIDs', sl);
     sl.Free;
   end;
+  
 end;
 
 //
@@ -481,8 +526,11 @@ end;
 function Initialize: integer;
 begin
   CreateStringLists;//Create StringLists
+  
   InitialSetup; //Handles Intro and file checks
-  if sScriptFailedReason <> '' then exit;
+  if sScriptFailedReason <> '' then 
+    exit;
+  
   {Do Work}
   LoadINI; //Ini Handling
   LoadEffects; //Loads the FormID in the slEffect list
@@ -494,7 +542,8 @@ end;
 function Finalize: integer;
 begin
   FreeStringLists;
-  if sScriptFailedReason <> '' then begin
+  if sScriptFailedReason <> '' then 
+  begin
     AddMessage(sScriptFailedReason);
     Result := -1
   end
