@@ -7,16 +7,15 @@ Created by Hishutup with the guidance of Mator.
 Thanks to Mator for some of his functions.
 
 
-ChangeLog(1.5->1.65)
-*Added xEdit version check
+ChangeLog(1.65->1.70)
+*Minor adjustments
 }
 unit userscript;
-uses 'Check For Errors';
 
 const
-  cRequired_xEdit_Ver='03010200'//xEdit Version
+  cRequired_xEdit_Ver='03010200';//xEdit Version
   
-	cVer='1.65';//This is the version of the script, not the main mod
+	cVer='1.70';//This is the version of the script, not the main mod
 	cDashes = '-----------------------------------------------------------------------------------';
 	
 	//Debugging Options
@@ -29,7 +28,7 @@ const
 	doScan=false; //Scan for weathers with the snow flags
 	
 	cINIFile='Real Snowflakes Patcher.ini';//Ini File Name
-	cPatchFile='Vivid Snow.esp';//Patch File to use.
+	cPatchFile='Vivid Snow Physical.esp';//Patch File to use.
  
 var
   
@@ -241,11 +240,6 @@ begin
     exit;
   end;
   
-  if HasGroup(iPatchFile, 'FLST') then 
-  begin//Checks for FormID Lists
-    sScriptFailedReason := 'Found previously patched weathers. Please reinstal Vivid Snow, terminating script now.';
-  end;
-  
   if not CheckINI then 
   begin //Check for INI File
     sScriptFailedReason := 'You are missing '+cINIFile+'. Please reinstal the "Edit Scripts" folder from the mod archive, terminating script now.';
@@ -381,31 +375,33 @@ end;
 //=============================================================================================================
 procedure CreateFormIDLists;
 var
-  i: Integer;
-  sEffect, sFormID: String;
-  g, rec: IInterface;
+  i, iIndex: Integer;
+  sFormID: String;
+  g, e: IInterface;
 begin
-  DebugFormListMessage('Starting to create FormID Lists.');
+  {DebugFormListMessage('Starting to create FormID Lists.');
   if not HasGroup(iPatchFile, 'FLST') then 
   begin
     Add(iPatchFile,'FLST', True);
     DebugFormListMessage('  Creating FormID List Group');
-  end;
+  end;}
   for i := 0 to Pred(slWeather.Count) do 
   begin
     if slFormList.IndexOfName(slWeather.ValueFromIndex[i]+'_List') = -1 then 
       slFormList.Add(slWeather.ValueFromIndex[i]+'_List'+'='+'');
   end;
+  
   g := GroupBySignature(iPatchFile, 'FLST');
-  for i := 0 to Pred(slFormList.Count) do 
+  for i := 0 to Pred(ElementCount(g)) do
   begin
-    sEffect := slFormList.Names[i];
-    rec := Add(g, 'FLST', True);
-    Add(rec, 'FormIDs', True);
-    sFormID := HexFormID(rec);
-    slFormList.ValueFromIndex[i] := sFormID;
-    senv(rec, 'EDID', sEffect);
-    DebugFormListMessage('  Assigning '+sFormID+' to '+sEffect);
+    e := ElementByIndex(g, i);
+    iIndex := slFormList.IndexOfName(EditorID(e));
+    if iIndex <> -1 then
+    begin
+      sFormID := HexFormID(e);
+      slFormList.ValueFromIndex[iIndex] := sFormID;
+      DebugFormListMessage('  Assigning '+sFormID+' to '+slFormList.Names[iIndex]);
+    end;
   end;
 end;
 
@@ -449,7 +445,8 @@ begin
 			sScriptFailedReason := 'Something went wrong, I dont really know what... but take this:';
 			AddMessage(x.Message);
       AddMessage(cDashes);
-      CheckForErrors(0,e);
+      AddMessage(IntToHex(FormID(e)));
+      AddMessage('    '+Check(e));
 		end;
 	end
 end;
@@ -500,7 +497,7 @@ begin
     iFormIdx := slFormList.IndexOfName(sEffect+'_List');
     if iFormIdx = -1 then 
     begin 
-      sScriptFailedReason := 'Something went wrong with adding finding the idex of a FormID List';
+      sScriptFailedReason := 'Something went wrong with finding the index of a FormID List';
       exit;
     end;
     DebugFormListMessage('  Reading Lists for '+ sEffect);
