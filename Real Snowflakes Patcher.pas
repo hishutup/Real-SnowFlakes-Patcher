@@ -4,18 +4,21 @@ SupportedWeathers are listed in the INI file.
 
 Created by Hishutup with the guidance of Mator.
 
-Thanks to Mator for some of his functions.
+Thanks to Mator for some of his functions and his time.
 
 
-ChangeLog(1.65->1.70)
-*Minor adjustments
+ChangeLog(1.70->1.75)
+*Fixed several bugs with FormIDs
+*Compatible with multiple Filenames
+
+*I used a lot of patches, the next version may be another rewrite
 }
 unit userscript;
 
 const
   cRequired_xEdit_Ver='03010200';//xEdit Version
   
-	cVer='1.70';//This is the version of the script, not the main mod
+	cVer='1.75';//This is the version of the script, not the main mod
 	cDashes = '-----------------------------------------------------------------------------------';
 	
 	//Debugging Options
@@ -28,7 +31,7 @@ const
 	doScan=false; //Scan for weathers with the snow flags
 	
 	cINIFile='Real Snowflakes Patcher.ini';//Ini File Name
-	cPatchFile='Vivid Snow Physical.esp';//Patch File to use.
+	cPatchFile='Vivid Snow.esp,Vivid Snow Physical.esp';//Patch File to use.
  
 var
   
@@ -207,12 +210,40 @@ begin
   SetListEditValues(e, ip, values);
 end;
 
+procedure seev(e: IInterface; ip: string; val: string);
+begin
+  SetEditValue(ElementByIP(e, ip), val);
+end;
+
 //
 //Initialization
 //=============================================================================================================
 procedure InitialSetup;
+var
+  slMainFile: TStringList;
+  i, iIndex: int;
+  sFileName: string;
 begin
   iPatchFile := FileByName(cPatchFile);//Load the PatchFile's IInterface
+  slMainFile := TStringList.Create;
+  slMainFile.StrictDelimiter := true;
+  slMainFile.DelimitedText := cPatchFile;
+  for i := 0 to Pred(FileCount) do
+  begin
+    sFileName := GetFileName(FileByIndex(i));
+    iIndex :=  slMainFile.IndexOf(sFileName);
+    if iIndex = -1 then continue;
+    
+    if Assigned(iPatchFile) then
+    begin
+      sScriptFailedReason := 'You have two or more valid plugins enabled, reload xEdit with only one, terminating script now.';
+      exit;
+    end
+    
+    iPatchFile := FileByIndex(i);
+  end;
+  slMainFile.Free;
+  
   AddMessage('The current Script Version is: '+cVer);//Print the Script version
   AddMessage(cDashes);//Dashes
   
@@ -230,7 +261,7 @@ begin
   
   if GetFileName(iPatchFile) = '' then 
   begin //Check for Patch File
-    sScriptFailedReason := 'You are missing '+cPatchFile+'. Please reinstal Vivid Snow, terminating script now.';
+    sScriptFailedReason := 'You are missing the Vivid Snow plugin. Please reinstal Vivid Snow, terminating script now.';
     exit;
   end;
   
@@ -385,14 +416,14 @@ begin
     Add(iPatchFile,'FLST', True);
     DebugFormListMessage('  Creating FormID List Group');
   end;}
-  for i := 0 to Pred(slWeather.Count) do 
+  for i := 0 to Pred(slEffect.Count) do 
   begin
-    if slFormList.IndexOfName(slWeather.ValueFromIndex[i]+'_List') = -1 then 
-      slFormList.Add(slWeather.ValueFromIndex[i]+'_List'+'='+'');
+    slFormList.Add(slEffect.Names[i]+'_List'+'='+'');
   end;
   
+  Add(iPatchFile,'FLST', True);
   g := GroupBySignature(iPatchFile, 'FLST');
-  for i := 0 to Pred(ElementCount(g)) do
+  for i := 0 to Pred(ElementCount(g)) do//find effect lists and add it to an sl
   begin
     e := ElementByIndex(g, i);
     iIndex := slFormList.IndexOfName(EditorID(e));
@@ -402,6 +433,15 @@ begin
       slFormList.ValueFromIndex[iIndex] := sFormID;
       DebugFormListMessage('  Assigning '+sFormID+' to '+slFormList.Names[iIndex]);
     end;
+  end;
+  
+  for i := 0 to Pred(slFormList.Count) do//If a List for an effect isnt set, create it
+  begin
+    if slFormList.ValueFromIndex[i] <> '' then continue;
+    g := GroupBySignature(iPatchFile, 'FLST');
+    e := Add(g,'FLST', True);
+    seev(e, 'EDID', slFormList.Names[i]);
+    slFormList.ValueFromIndex[i] := HexFormID(e);
   end;
 end;
 
@@ -511,6 +551,10 @@ begin
       end;
     end;
     e := RecordByHexFormID(slFormList.ValueFromIndex[iFormIdx]);
+    if not Assigned(geev(e,'FormIDs')) then
+    begin
+      Add(e, 'FormIDs', true);
+    end;
     slev(e, 'FormIDs', sl);
     sl.Free;
   end;
